@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Shield - App Permission Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { 
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #533483 100%);
+            background-attachment: fixed;
+            perspective: 1000px;
+            overflow-x: hidden;
+        }
+        
+        /* 3D Scene Setup */
+        .scene-3d {
+            transform-style: preserve-3d;
+            perspective: 1200px;
+        }
+        
+        /* 3D Background Layers */
+        .bg-layer-1, .bg-layer-2, .bg-layer-3 {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .bg-layer-1 {
+            background: radial-gradient(circle at 20% 30%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 70%, rgba(220, 38, 38, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
+            transform: translateZ(-100px) scale(1.1);
+            animation: float-bg-1 20s ease-in-out infinite;
+        }
+        
+        .bg-layer-2 {
+            background: conic-gradient(from 0deg at 50% 50%, 
+                        rgba(139, 92, 246, 0.05) 0deg, 
+                        rgba(220, 38, 38, 0.05) 120deg, 
+                        rgba(16, 185, 129, 0.05) 240deg, 
+                        rgba(139, 92, 246, 0.05) 360deg);
+            transform: translateZ(-200px) scale(1.2);
+            animation: rotate-bg 30s linear infinite;
+        }
+        
+        .bg-layer-3 {
+            background-image: 
+                radial-gradient(2px 2px at 20px 30px, rgba(255,255,255,0.1), transparent),
+                radial-gradient(2px 2px at 40px 70px, rgba(139, 92, 246, 0.1), transparent),
+                radial-gradient(1px 1px at 90px 40px, rgba(220, 38, 38, 0.1), transparent),
+                radial-gradient(1px 1px at 130px 80px, rgba(16, 185, 129, 0.1), transparent);
+            background-size: 200px 200px;
+            transform: translateZ(-300px) scale(1.3);
+            animation: drift-bg 25s ease-in-out infinite;
+        }
+        
+        @keyframes float-bg-1 {
+            0%, 100% { transform: translateZ(-100px) scale(1.1) translateY(0px); }
+            50% { transform: translateZ(-100px) scale(1.1) translateY(-20px); }
+        }
+        
+        @keyframes rotate-bg {
+            0% { transform: translateZ(-200px) scale(1.2) rotate(0deg); }
+            100% { transform: translateZ(-200px) scale(1.2) rotate(360deg); }
+        }
+        
+        @keyframes drift-bg {
+            0%, 100% { transform: translateZ(-300px) scale(1.3) translateX(0px); }
+            50% { transform: translateZ(-300px) scale(1.3) translateX(30px); }
+        }
+        
+        .permission-granted {
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            animation: pulse-glow 2s ease-in-out infinite alternate;
+        }
+        
+        .permission-denied {
+            background: linear-gradient(135deg, #374151, #1f2937);
+            animation: fade-pulse 3s ease-in-out infinite;
+        }
+        
+        .permission-warning {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            animation: warning-blink 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 5px rgba(220, 38, 38, 0.5); }
+            100% { box-shadow: 0 0 15px rgba(220, 38, 38, 0.8); }
+        }
+        
+        @keyframes fade-pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        
+        @keyframes warning-blink {
+            0%, 50%, 100% { opacity: 1; }
+            25%, 75% { opacity: 0.7; }
+        }
+        
+        .app-card {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(145deg, #1f2937, #111827);
+            border: 1px solid #374151;
+            animation: float 6s ease-in-out infinite;
+            transform-style: preserve-3d;
+            position: relative;
+            box-shadow: 
+                0 10px 20px rgba(0, 0, 0, 0.3),
+                0 6px 6px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+        
+        .app-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(145deg, rgba(220, 38, 38, 0.1), rgba(139, 92, 246, 0.1));
+            border-radius: inherit;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+        }
+        
+        .app-card:hover {
+            transform: translateY(-12px) translateZ(20px) rotateX(5deg) rotateY(-5deg) scale(1.03);
+            box-shadow: 
+                0 25px 50px rgba(220, 38, 38, 0.4),
+                0 15px 30px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            border-color: #dc2626;
+            animation-play-state: paused;
+        }
+        
+        .app-card:hover::before {
+            opacity: 1;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        .stat-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(145deg, #1f2937, #111827);
+            border: 1px solid #374151;
+            animation: gentle-bounce 4s ease-in-out infinite;
+            transform-style: preserve-3d;
+            position: relative;
+            box-shadow: 
+                0 8px 16px rgba(0, 0, 0, 0.3),
+                0 4px 8px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+        
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #dc2626, #8b5cf6, #10b981, #dc2626);
+            border-radius: inherit;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            animation: border-glow 3s linear infinite;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-8px) translateZ(15px) rotateX(10deg) rotateY(10deg) scale(1.05);
+            box-shadow: 
+                0 20px 40px rgba(220, 38, 38, 0.3),
+                0 12px 24px rgba(0, 0, 0, 0.3),
+                inset 0 2px 0 rgba(255, 255, 255, 0.2);
+            border-color: #dc2626;
+            animation-play-state: paused;
+        }
+        
+        .stat-card:hover::after {
+            opacity: 1;
+        }
+        
+        @keyframes border-glow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        @keyframes gentle-bounce {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            25% { transform: translateY(-2px) scale(1.01); }
+            75% { transform: translateY(-1px) scale(1.005); }
+        }
+        
+        .permission-item {
+            transition: all 0.2s ease;
+        }
+        
+        .permission-item:hover {
+            background-color: rgba(55, 65, 81, 0.5);
+            transform: translateX(4px);
+        }
+        
+        .action-button {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            position: relative;
+            box-shadow: 
+                0 4px 8px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+        
+        .action-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            border-radius: inherit;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        
+        .action-button:hover {
+            transform: translateY(-4px) translateZ(10px) rotateX(5deg);
+            box-shadow: 
+                0 12px 24px rgba(220, 38, 38, 0.4),
+                0 8px 16px rgba(0, 0, 0, 0.3),
+                inset 0 2px 0 rgba(255, 255, 255, 0.3);
+        }
+        
+        .action-button:hover::before {
+            opacity: 1;
+        }
+        
+        .action-button:active {
+            transform: translateY(-2px) translateZ(5px) rotateX(2deg);
+            box-shadow: 
+                0 6px 12px rgba(220, 38, 38, 0.3),
+                0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .timeline-item {
+            transition: all 0.3s ease;
+            animation: slide-in-left 0.6s ease-out;
+            opacity: 0;
+            animation-fill-mode: forwards;
+        }
+        
+        .timeline-item:nth-child(1) { animation-delay: 0.1s; }
+        .timeline-item:nth-child(2) { animation-delay: 0.2s; }
+        .timeline-item:nth-child(3) { animation-delay: 0.3s; }
+        .timeline-item:nth-child(4) { animation-delay: 0.4s; }
+        .timeline-item:nth-child(5) { animation-delay: 0.5s; }
+        
+        .timeline-item:hover {
+            transform: translateX(8px) scale(1.02);
+            box-shadow: 0 8px 20px rgba(220, 38, 38, 0.2);
+        }
+        
+        @keyframes slide-in-left {
+            0% {
+                transform: translateX(-50px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .tab-active {
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            color: white;
+        }
+        
+        .privacy-gradient {
+            background: linear-gradient(135deg, #111827 0%, #1f2937 50%, #dc2626 100%);
+        }
+        
+        .dark-card {
+            background: #1f2937;
+            border: 1px solid #374151;
+        }
+        
+        .dark-card:hover {
+            border-color: #dc2626;
+        }
+        
+        /* Custom Animation Keyframes */
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes reverse-spin {
+            from { transform: rotate(360deg); }
+            to { transform: rotate(0deg); }
+        }
+        
+        @keyframes radar-sweep {
+            0% { transform: translate(-50%, -50%) rotate(0deg); opacity: 1; }
+            100% { transform: translate(-50%, -50%) rotate(360deg); opacity: 0; }
+        }
+        
+        @keyframes data-flow {
+            0% { transform: translateX(-100%); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateX(100%); opacity: 0; }
+        }
+        
+        @keyframes shield-pulse {
+            0%, 100% { transform: scale(1); opacity: 0.7; }
+            50% { transform: scale(1.1); opacity: 1; }
+        }
+        
+        @keyframes threat-alert {
+            0%, 100% { background-color: rgba(239, 68, 68, 0.1); }
+            50% { background-color: rgba(239, 68, 68, 0.3); }
+        }
+        
+        /* Animation Classes */
+        .animate-spin-slow { animation: spin-slow 8s linear infinite; }
+        .animate-reverse-spin { animation: reverse-spin 12s linear infinite; }
+        .animate-radar-sweep { animation: radar-sweep 3s linear infinite; }
+        .animate-data-flow { animation: data-flow 2s ease-in-out infinite; }
+        .animate-shield-pulse { animation: shield-pulse 2s ease-in-out infinite; }
+        .animate-threat-alert { animation: threat-alert 1.5s ease-in-out infinite; }
+        
+        /* 3D Modal Effects */
+        .modal-content {
+            transform-style: preserve-3d;
+            background: linear-gradient(145deg, #1f2937, #111827);
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.5),
+                0 15px 30px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+        
+        .modal-content.scale-100 {
+            transform: scale(1) translateZ(0) rotateX(0deg);
+        }
+        
+        .modal-content.scale-95 {
+            transform: scale(0.95) translateZ(-20px) rotateX(-5deg);
+        }
+        
+        /* 3D Navigation */
+        nav {
+            transform-style: preserve-3d;
+            background: linear-gradient(145deg, #1f2937, #111827);
+            box-shadow: 
+                0 8px 16px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+        
+        nav button {
+            transform-style: preserve-3d;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        nav button:hover {
+            transform: translateY(-2px) translateZ(5px);
+        }
+        
+        /* 3D Timeline Items */
+        .timeline-item {
+            transform-style: preserve-3d;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(249, 250, 251, 0.95));
+            box-shadow: 
+                0 4px 8px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+        
+        .timeline-item:hover {
+            transform: translateX(8px) translateZ(10px) rotateY(-2deg) scale(1.02);
+            box-shadow: 
+                0 12px 24px rgba(220, 38, 38, 0.2),
+                0 8px 16px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 min-h-screen text-white">
+    <!-- 3D Background Layers -->
+    <div class="bg-layer-1"></div>
+    <div class="bg-layer-2"></div>
+    <div class="bg-layer-3"></div>
+    
+    <!-- Header -->
+    <header class="privacy-gradient text-white shadow-lg relative z-10" style="transform-style: preserve-3d;">
+        <div class="max-w-6xl mx-auto px-4 py-6 scene-3d">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center relative overflow-hidden animate-shield-pulse">
+                        <!-- Animated glow effect -->
+                        <div class="absolute inset-0 bg-gradient-to-r from-red-500/20 to-red-300/20 rounded-lg animate-pulse"></div>
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" class="relative z-10">
+                            <!-- Shield outline -->
+                            <path d="M16 2L6 6V14C6 21 10.5 27.5 16 30C21.5 27.5 26 21 26 14V6L16 2Z" stroke="#dc2626" stroke-width="2" fill="rgba(220, 38, 38, 0.1)"/>
+                            <!-- Inner shield -->
+                            <path d="M16 5L9 8V14C9 19.5 12 24 16 26C20 24 23 19.5 23 14V8L16 5Z" fill="#dc2626"/>
+                            <!-- Lock symbol -->
+                            <rect x="13" y="14" width="6" height="6" rx="1" fill="white"/>
+                            <path d="M14 14V12C14 10.9 14.9 10 16 10C17.1 10 18 10.9 18 12V14" stroke="white" stroke-width="1.5" fill="none"/>
+                            <!-- Digital circuit lines -->
+                            <path d="M10 10L12 12M20 10L22 12M10 18L12 16M20 18L22 16" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+                        </svg>
+                        <!-- Data flow animation -->
+                        <div class="absolute top-1/2 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-data-flow"></div>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold">Privacy Shield</h1>
+                        <p class="text-blue-100 text-sm">Your data, your control</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                        <p class="text-sm font-medium">John Doe</p>
+                        <p class="text-xs text-blue-100">Premium User</p>
+                    </div>
+                    <div class="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                        <span class="text-lg">👤</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="bg-gray-800 border-b border-gray-700 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex space-x-8">
+                <button class="tab-active px-4 py-3 text-sm font-medium rounded-t-lg transition-all duration-300 hover:scale-105" onclick="showTab('dashboard')">
+                    📱 App Dashboard
+                </button>
+                <button class="px-4 py-3 text-sm font-medium text-gray-300 hover:text-white transition-all duration-300 hover:scale-105 hover:bg-gray-700 rounded-t-lg" onclick="showTab('timeline')">
+                    📊 Activity Log
+                </button>
+                <button class="px-4 py-3 text-sm font-medium text-gray-300 hover:text-white transition-all duration-300 hover:scale-105 hover:bg-gray-700 rounded-t-lg" onclick="showTab('actions')">
+                    ⚙️ Privacy Actions
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-6xl mx-auto px-4 py-6 scene-3d">
+        <!-- Dashboard Tab -->
+        <div id="dashboard-tab" class="tab-content">
+            <!-- Stats Overview -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="stat-card rounded-2xl p-6 shadow-md hover:shadow-xl cursor-pointer">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-300 text-sm transition-colors">Total Apps</p>
+                            <p class="text-2xl font-bold text-white transition-all duration-300 animate-pulse">24</p>
+                        </div>
+                        <div class="w-12 h-12 bg-red-900 rounded-lg flex items-center justify-center transition-all duration-300 hover:bg-red-800 hover:scale-110">
+                            <span class="text-2xl">📱</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stat-card rounded-2xl p-6 shadow-md hover:shadow-xl cursor-pointer">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-300 text-sm transition-colors">High Risk</p>
+                            <p class="text-2xl font-bold text-red-400 transition-all duration-300 animate-bounce">3</p>
+                        </div>
+                        <div class="w-12 h-12 bg-red-900 rounded-lg flex items-center justify-center transition-all duration-300 hover:bg-red-800 hover:scale-110">
+                            <span class="text-2xl">⚠️</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stat-card rounded-2xl p-6 shadow-md hover:shadow-xl cursor-pointer">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-300 text-sm transition-colors">Data Requests</p>
+                            <p class="text-2xl font-bold text-red-400 transition-all duration-300 animate-pulse">7</p>
+                        </div>
+                        <div class="w-12 h-12 bg-red-900 rounded-lg flex items-center justify-center transition-all duration-300 hover:bg-red-800 hover:scale-110">
+                            <span class="text-2xl">📋</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stat-card rounded-2xl p-6 shadow-md hover:shadow-xl cursor-pointer">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-300 text-sm transition-colors">Last Scan</p>
+                            <p class="text-sm font-medium text-white transition-all duration-300">2 hours ago</p>
+                        </div>
+                        <div class="w-12 h-12 bg-red-900 rounded-lg flex items-center justify-center transition-all duration-300 hover:bg-red-800 hover:scale-110">
+                            <span class="text-2xl">🔍</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VPN & Security Controls -->
+            <div class="flex justify-center gap-8 mb-8">
+                <!-- VPN Control Panel -->
+                <div class="app-card w-48 h-48 rounded-full p-4 shadow-2xl hover:shadow-3xl relative overflow-hidden border-4 border-emerald-500/30 hover:border-emerald-400/50 transition-all duration-500 cursor-pointer vpn-circle transform-gpu" style="transform-style: preserve-3d;" onclick="showVPNDetails()">
+                    <!-- Animated background gradient -->
+                    <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-green-600/5 to-teal-500/10 animate-pulse"></div>
+                    <!-- Rotating ring animation -->
+                    <div class="absolute inset-2 border-2 border-emerald-400/20 rounded-full animate-spin-slow"></div>
+                    <div class="absolute inset-4 border border-emerald-300/30 rounded-full animate-reverse-spin"></div>
+                    
+                    <!-- Central VPN Logo -->
+                    <div class="flex flex-col items-center text-center h-full justify-center relative z-10">
+                        <div class="w-12 h-12 bg-gradient-to-br from-emerald-400 via-green-500 to-teal-600 rounded-full flex items-center justify-center transition-all duration-500 hover:scale-125 hover:rotate-12 shadow-2xl mb-2 relative overflow-hidden group">
+                            <!-- Glowing ring effect -->
+                            <div class="absolute inset-0 rounded-full bg-gradient-to-r from-emerald-300 to-green-400 opacity-0 group-hover:opacity-30 animate-ping"></div>
+                            <!-- Shield with lock icon -->
+                            <svg width="24" height="24" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="relative z-10">
+                                <path d="M20 3L8 7V17C8 26 13 34 20 37C27 34 32 26 32 17V7L20 3Z" stroke="white" stroke-width="2" fill="rgba(255,255,255,0.2)"/>
+                                <path d="M20 6L11 9V17C11 24 15 30 20 33C25 30 29 24 29 17V9L20 6Z" fill="white"/>
+                                <rect x="16" y="17" width="8" height="8" rx="1" fill="#10b981"/>
+                                <path d="M17 17V15C17 13.3 18.3 12 20 12C21.7 12 23 13.3 23 15V17" stroke="#10b981" stroke-width="2" fill="none"/>
+                            </svg>
+                        </div>
+                        <h3 class="font-bold text-sm text-white mb-1">VPN Shield</h3>
+                        <div class="flex items-center space-x-1 mb-2">
+                            <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-lg"></div>
+                            <span class="text-xs text-emerald-300 font-semibold">PROTECTED</span>
+                        </div>
+                        <button class="action-button bg-gradient-to-r from-emerald-500 to-green-600 text-white py-2 px-4 rounded-lg text-xs font-bold hover:from-emerald-600 hover:to-green-700 transition-all duration-300 transform hover:scale-105 shadow-lg relative overflow-hidden group" onclick="event.stopPropagation(); toggleVPN()" id="vpn-toggle">
+                            <div class="relative flex items-center justify-center space-x-1">
+                                <span class="text-sm animate-pulse">🛡️</span>
+                                <span>ON</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dark Web Monitoring -->
+                <div class="app-card w-48 h-48 rounded-full p-4 shadow-2xl hover:shadow-3xl relative overflow-hidden border-4 border-purple-500/30 hover:border-purple-400/50 transition-all duration-500 cursor-pointer darkweb-circle transform-gpu" style="transform-style: preserve-3d;" onclick="showDarkWebDetails()">
+                    <!-- Animated background gradient -->
+                    <div class="absolute inset-0 bg-gradient-to-br from-purple-600/10 via-indigo-700/5 to-violet-500/10 animate-pulse"></div>
+                    <!-- Scanning wave animation -->
+                    <div class="absolute inset-6 border border-purple-400/40 rounded-full animate-ping"></div>
+                    <div class="absolute inset-8 border border-indigo-400/30 rounded-full animate-pulse"></div>
+                    <!-- Radar sweep effect -->
+                    <div class="absolute inset-0 rounded-full overflow-hidden">
+                        <div class="absolute top-1/2 left-1/2 w-24 h-0.5 bg-gradient-to-r from-transparent via-purple-400 to-transparent transform -translate-x-1/2 -translate-y-1/2 animate-radar-sweep origin-left"></div>
+                    </div>
+                    
+                    <!-- Central Dark Web Logo -->
+                    <div class="flex flex-col items-center text-center h-full justify-center relative z-10">
+                        <div class="w-12 h-12 bg-gradient-to-br from-purple-500 via-indigo-600 to-violet-700 rounded-full flex items-center justify-center transition-all duration-500 hover:scale-125 hover:rotate-12 shadow-2xl mb-2 relative overflow-hidden group">
+                            <!-- Glowing ring effect -->
+                            <div class="absolute inset-0 rounded-full bg-gradient-to-r from-purple-400 to-indigo-500 opacity-0 group-hover:opacity-30 animate-ping"></div>
+                            <!-- Dark web surveillance icon -->
+                            <svg width="24" height="24" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="relative z-10">
+                                <!-- Main eye -->
+                                <circle cx="20" cy="20" r="12" stroke="white" stroke-width="2" fill="rgba(255,255,255,0.1)"/>
+                                <circle cx="20" cy="20" r="8" fill="white"/>
+                                <circle cx="20" cy="20" r="4" fill="#8b5cf6"/>
+                                <circle cx="22" cy="18" r="1.5" fill="white"/>
+                                
+                                <!-- Network nodes -->
+                                <circle cx="10" cy="15" r="1.5" fill="rgba(255,255,255,0.4)"/>
+                                <circle cx="30" cy="15" r="1.5" fill="rgba(255,255,255,0.4)"/>
+                                <circle cx="10" cy="25" r="1.5" fill="rgba(255,255,255,0.4)"/>
+                                <circle cx="30" cy="25" r="1.5" fill="rgba(255,255,255,0.4)"/>
+                            </svg>
+                        </div>
+                        <h3 class="font-bold text-sm text-white mb-1">Dark Monitor</h3>
+                        <div class="flex items-center space-x-1 mb-2">
+                            <div class="w-2 h-2 bg-yellow-400 rounded-full animate-pulse shadow-lg"></div>
+                            <span class="text-xs text-yellow-300 font-semibold">SCANNING</span>
+                        </div>
+                        <button class="action-button bg-gradient-to-r from-purple-600 to-indigo-700 text-white py-2 px-4 rounded-lg text-xs font-bold hover:from-purple-700 hover:to-indigo-800 transition-all duration-300 transform hover:scale-105 shadow-lg relative overflow-hidden group" onclick="event.stopPropagation(); viewDarkWebReport()">
+                            <div class="relative flex items-center justify-center space-x-1">
+                                <span class="text-sm animate-bounce">📊</span>
+                                <span>REPORT</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- App Cards -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- WhatsApp Card -->
+                <div class="app-card rounded-2xl p-6 shadow-md hover:shadow-xl">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-110 hover:rotate-3">
+                                <span class="text-white text-xl font-bold">W</span>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-lg text-white transition-colors hover:text-red-400">WhatsApp</h3>
+                                <p class="text-gray-400 text-sm transition-colors">Last access: 5 min ago</p>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 bg-red-900 text-red-300 text-xs font-medium rounded-full transition-all duration-300 hover:bg-red-800 hover:scale-105">Trusted</span>
+                    </div>
+                    
+                    <div class="space-y-3 mb-4">
+                        <div class="permission-item flex items-center justify-between p-2 rounded-lg">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm text-gray-300">📷 Camera</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="permission-granted w-3 h-3 rounded-full transition-all duration-300 hover:scale-125"></span>
+                                <span class="text-sm text-red-400 font-medium">Granted</span>
+                            </div>
+                        </div>
+                        
+                        <div class="permission-item flex items-center justify-between p-2 rounded-lg">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm text-gray-300">👥 Contacts</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="permission-granted w-3 h-3 rounded-full transition-all duration-300 hover:scale-125"></span>
+                                <span class="text-sm text-red-400 font-medium">Granted</span>
+                            </div>
+                        </div>
+                        
+                        <div class="permission-item flex items-center justify-between p-2 rounded-lg">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm text-gray-300">🎤 Microphone</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="permission-granted w-3 h-3 rounded-full transition-all duration-300 hover:scale-125"></span>
+                                <span class="text-sm text-red-400 font-medium">Granted</span>
+                            </div>
+                        </div>
+                        
+                        <div class="permission-item flex items-center justify-between p-2 rounded-lg">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm text-gray-300">📍 Location</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="permission-denied w-3 h-3 rounded-full transition-all duration-300 hover:scale-125"></span>
+                                <span class="text-sm text-gray-400 font-medium">Denied</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button class="action-button flex-1 bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-red-700 transition-all duration-300" onclick="managePermissions('WhatsApp')">
+                            Manage Permissions
+                        </button>
+                        <button class="action-button px-4 py-2 border border-gray-600 text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-700 transition-all duration-300" onclick="requestDeletion('WhatsApp')">
+                            Request Deletion
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Instagram Card -->
+                <div class="app-card rounded-2xl p-6 shadow-md hover:shadow-xl">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-110 hover:rotate-3">
+                                <span class="text-white text-xl font-bold">I</span>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-lg text-white transition-colors hover:text-red-400">Instagram</h3>
+                                <p class="text-gray-400 text-sm transition-colors">Last access: 2 hours ago</p>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 bg-red-900 text-red-300 text-xs font-medium rounded-full transition-all duration-300 hover:bg-red-800 hover:scale-105">Review</span>
+                    </div>
+                    
+                    <div class="space-y-3 mb-4">
+                        <div class="permission-item flex items-center justify-between p-2 rounded-lg">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm">📷 Camera</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="permission-granted w-3 h-3 rounded-full transition-all duration-300 hover:scale-125"></span>
+                                <span class="text-sm text-green-600 font-medium">Granted</span>
+                            </div>
+                        </div>
+                        
+                        <div class="permission-item flex items-center justify-between p-2 rounded-lg">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm">📍 Location</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="permission-warning w-3 h-3 rounded-full transition-all duration-300 hover:scale-125"></span>
+                                <span class="text-sm text-yellow-600 font-medium">Always On</span>
+                            </div>
+                        </div>
+                        
+                        <div class="permission-item flex items-center justify-between p-2 rounded-lg">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm">📁 Storage</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="permission-granted w-3 h-3 rounded-full transition-all duration-300 hover:scale-125"></span>
+                                <span class="text-sm text-green-600 font-medium">Granted</span>
+                            </div>
+                        </div>
+                        
+                        <div class="permission-item flex items-center justify-between p-2 rounded-lg">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm">👥 Contacts</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="permission-denied w-3 h-3 rounded-full transition-all duration-300 hover:scale-125"></span>
+                                <span class="text-sm text-red-600 font-medium">Denied</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button class="action-button flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-700 transition-all duration-300" onclick="managePermissions('Instagram')">
+                            Manage Permissions
+                        </button>
+                        <button class="action-button px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-all duration-300" onclick="requestDeletion('Instagram')">
+                            Request Deletion
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TikTok Card -->
+                <div class="app-card bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover:shadow-xl">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-black rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-110 hover:rotate-3">
+                                <span class="text-white text-xl font-bold">T</span>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-lg transition-colors hover:text-gray-800">TikTok</h3>
+                                <p class="text-gray-500 text-sm transition-colors">Last access: 1 hour ago</p>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full transition-all duration-300 hover:bg-red-200 hover:scale-105">High Risk</span>
+                    </div>
+                    
+                    <div class="space-y-3 mb-4">
+                        <div class="permission-item flex items-center justify-between p-2 rounded-lg">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm">📷 Camera</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="permission-granted w-3 h-3 rounded-full transition-all duration-300 hover:scale-125"></span>
+                                <span class="text-sm text-green-600 font-medium">Granted</span>
+                            </div>
+                        </div>
+                        
+                        <div class="permission-item flex items-center justify-between p-2 rounded-lg">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm">🎤 Microphone</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="permission-granted w-3 h-3 rounded-full transition-all duration-300 hover:scale-125"></span>
+                                <span class="text-sm text-green-600 font-medium">Granted</span>
+                            </div>
+                        </div>
+                        
+                        <div class="permission-item flex items-center justify-between p-2 rounded-lg">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm">📍 Location</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="permission-warning w-3 h-3 rounded-full transition-all duration-300 hover:scale-125"></span>
+                                <span class="text-sm text-yellow-600 font-medium">Always On</span>
+                            </div>
+                        </div>
+                        
+                        <div class="permission-item flex items-center justify-between p-2 rounded-lg">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm">👥 Contacts</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="permission-granted w-3 h-3 rounded-full transition-all duration-300 hover:scale-125"></span>
+                                <span class="text-sm text-green-600 font-medium">Granted</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button class="action-button flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-700 transition-all duration-300" onclick="managePermissions('TikTok')">
+                            Manage Permissions
+                        </button>
+                        <button class="action-button px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-all duration-300" onclick="requestDeletion('TikTok')">
+                            Request Deletion
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Spotify Card -->
+                <div class="app-card bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover:shadow-xl">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-110 hover:rotate-3">
+                                <span class="text-white text-xl font-bold">S</span>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-lg transition-colors hover:text-green-600">Spotify</h3>
+                                <p class="text-gray-500 text-sm transition-colors">Last access: 30 min ago</p>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full transition-all duration-300 hover:bg-green-200 hover:scale-105">Trusted</span>
+                    </div>
+                    
+                    <div class="space-y-3 mb-4">
+                        <div class="permission-item flex items-center justify-between p-2 rounded-lg">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm">📁 Storage</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="permission-granted w-3 h-3 rounded-full transition-all duration-300 hover:scale-125"></span>
+                                <span class="text-sm text-green-600 font-medium">Granted</span>
+                            </div>
+                        </div>
+                        
+                        <div class="permission-item flex items-center justify-between p-2 rounded-lg">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm">📍 Location</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="permission-denied w-3 h-3 rounded-full transition-all duration-300 hover:scale-125"></span>
+                                <span class="text-sm text-red-600 font-medium">Denied</span>
+                            </div>
+                        </div>
+                        
+                        <div class="permission-item flex items-center justify-between p-2 rounded-lg">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm">🎤 Microphone</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="permission-denied w-3 h-3 rounded-full transition-all duration-300 hover:scale-125"></span>
+                                <span class="text-sm text-red-600 font-medium">Denied</span>
+                            </div>
+                        </div>
+                        
+                        <div class="permission-item flex items-center justify-between p-2 rounded-lg">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm">📞 Phone</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="permission-denied w-3 h-3 rounded-full transition-all duration-300 hover:scale-125"></span>
+                                <span class="text-sm text-red-600 font-medium">Denied</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button class="action-button flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-700 transition-all duration-300" onclick="managePermissions('Spotify')">
+                            Manage Permissions
+                        </button>
+                        <button class="action-button px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-all duration-300" onclick="requestDeletion('Spotify')">
+                            Request Deletion
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline Tab -->
+        <div id="timeline-tab" class="tab-content hidden">
+            <div class="dark-card rounded-xl shadow-sm">
+                <div class="p-6 border-b border-gray-700">
+                    <h2 class="text-xl font-semibold text-white">Data Access Timeline</h2>
+                    <p class="text-gray-400 text-sm mt-1">Recent app permission usage</p>
+                </div>
+                
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <div class="timeline-item flex items-start space-x-4 p-4 bg-red-50 rounded-xl border border-red-100 hover:bg-red-100 cursor-pointer">
+                            <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-300 hover:scale-110">
+                                <span class="text-white text-sm font-bold">I</span>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-medium text-gray-900 transition-colors">Instagram accessed your location</p>
+                                <p class="text-sm text-gray-600 transition-colors">July 28, 2024 at 2:15 PM</p>
+                                <p class="text-xs text-red-600 mt-1 transition-colors">⚠️ High frequency access detected</p>
+                            </div>
+                            <span class="text-xs text-gray-500 transition-colors">2 hours ago</span>
+                        </div>
+                        
+                        <div class="timeline-item flex items-start space-x-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 cursor-pointer">
+                            <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-300 hover:scale-110">
+                                <span class="text-white text-sm font-bold">W</span>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-medium text-gray-900 transition-colors">WhatsApp accessed your camera</p>
+                                <p class="text-sm text-gray-600 transition-colors">July 28, 2024 at 1:45 PM</p>
+                            </div>
+                            <span class="text-xs text-gray-500 transition-colors">3 hours ago</span>
+                        </div>
+                        
+                        <div class="timeline-item flex items-start space-x-4 p-4 bg-yellow-50 rounded-xl border border-yellow-100 hover:bg-yellow-100 cursor-pointer">
+                            <div class="w-10 h-10 bg-black rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-300 hover:scale-110">
+                                <span class="text-white text-sm font-bold">T</span>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-medium text-gray-900 transition-colors">TikTok accessed your contacts</p>
+                                <p class="text-sm text-gray-600 transition-colors">July 28, 2024 at 12:30 PM</p>
+                                <p class="text-xs text-yellow-600 mt-1 transition-colors">⚠️ Unusual permission usage</p>
+                            </div>
+                            <span class="text-xs text-gray-500 transition-colors">4 hours ago</span>
+                        </div>
+                        
+                        <div class="timeline-item flex items-start space-x-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 cursor-pointer">
+                            <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-300 hover:scale-110">
+                                <span class="text-white text-sm font-bold">S</span>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-medium text-gray-900 transition-colors">Spotify accessed your storage</p>
+                                <p class="text-sm text-gray-600 transition-colors">July 28, 2024 at 11:15 AM</p>
+                            </div>
+                            <span class="text-xs text-gray-500 transition-colors">5 hours ago</span>
+                        </div>
+                        
+                        <div class="timeline-item flex items-start space-x-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 cursor-pointer">
+                            <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-300 hover:scale-110">
+                                <span class="text-white text-sm font-bold">W</span>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-medium text-gray-900 transition-colors">WhatsApp accessed your microphone</p>
+                                <p class="text-sm text-gray-600 transition-colors">July 28, 2024 at 10:22 AM</p>
+                            </div>
+                            <span class="text-xs text-gray-500 transition-colors">6 hours ago</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 text-center">
+                        <button class="action-button px-6 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-all duration-300">
+                            Load More Activity
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Privacy Actions Tab -->
+        <div id="actions-tab" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Data Deletion Requests -->
+                <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                            <span class="text-xl">🗑️</span>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Data Deletion Requests</h3>
+                            <p class="text-gray-600 text-sm">Request companies to delete your data</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3 mb-4">
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                                    <span class="text-white text-xs font-bold">I</span>
+                                </div>
+                                <span class="font-medium">Instagram</span>
+                            </div>
+                            <button class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors" onclick="requestDeletion('Instagram')">
+                                Request Deletion
+                            </button>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
+                                    <span class="text-white text-xs font-bold">T</span>
+                                </div>
+                                <span class="font-medium">TikTok</span>
+                            </div>
+                            <button class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors" onclick="requestDeletion('TikTok')">
+                                Request Deletion
+                            </button>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                                    <span class="text-white text-xs font-bold">F</span>
+                                </div>
+                                <span class="font-medium">Facebook</span>
+                            </div>
+                            <span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Requested</span>
+                        </div>
+                    </div>
+                    
+                    <button class="w-full py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors">
+                        Generate GDPR Request Template
+                    </button>
+                </div>
+
+                <!-- Permission Management -->
+                <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <span class="text-xl">⚙️</span>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Quick Permission Controls</h3>
+                            <p class="text-gray-600 text-sm">Manage permissions across all apps</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-2xl">📍</span>
+                                <div>
+                                    <p class="font-medium">Location Access</p>
+                                    <p class="text-sm text-gray-600">3 apps have access</p>
+                                </div>
+                            </div>
+                            <button class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors" onclick="revokePermission('location')">
+                                Revoke All
+                            </button>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-2xl">📷</span>
+                                <div>
+                                    <p class="font-medium">Camera Access</p>
+                                    <p class="text-sm text-gray-600">5 apps have access</p>
+                                </div>
+                            </div>
+                            <button class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors" onclick="revokePermission('camera')">
+                                Revoke All
+                            </button>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-2xl">🎤</span>
+                                <div>
+                                    <p class="font-medium">Microphone Access</p>
+                                    <p class="text-sm text-gray-600">4 apps have access</p>
+                                </div>
+                            </div>
+                            <button class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors" onclick="revokePermission('microphone')">
+                                Revoke All
+                            </button>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-2xl">👥</span>
+                                <div>
+                                    <p class="font-medium">Contacts Access</p>
+                                    <p class="text-sm text-gray-600">2 apps have access</p>
+                                </div>
+                            </div>
+                            <button class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors" onclick="revokePermission('contacts')">
+                                Revoke All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Privacy Reports -->
+                <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 lg:col-span-2">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <span class="text-xl">📊</span>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Privacy Reports & Actions</h3>
+                            <p class="text-gray-600 text-sm">Generate reports and take action on privacy violations</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <button class="p-4 border border-gray-200 rounded-lg text-left hover:bg-gray-50 transition-colors" onclick="generateReport('weekly')">
+                            <div class="text-2xl mb-2">📈</div>
+                            <h4 class="font-medium mb-1">Weekly Privacy Report</h4>
+                            <p class="text-sm text-gray-600">Get insights on app behavior</p>
+                        </button>
+                        
+                        <button class="p-4 border border-gray-200 rounded-lg text-left hover:bg-gray-50 transition-colors" onclick="reportViolation()">
+                            <div class="text-2xl mb-2">🚨</div>
+                            <h4 class="font-medium mb-1">Report Privacy Violation</h4>
+                            <p class="text-sm text-gray-600">Report suspicious app behavior</p>
+                        </button>
+                        
+                        <button class="p-4 border border-gray-200 rounded-lg text-left hover:bg-gray-50 transition-colors" onclick="exportData()">
+                            <div class="text-2xl mb-2">💾</div>
+                            <h4 class="font-medium mb-1">Export My Data</h4>
+                            <p class="text-sm text-gray-600">Download your privacy data</p>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-12 py-8 bg-gray-800 border-t border-gray-700 relative z-10" style="transform-style: preserve-3d; background: linear-gradient(145deg, #1f2937, #111827); box-shadow: 0 -8px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);">
+        <div class="max-w-6xl mx-auto px-4 text-center scene-3d">
+            <div class="flex items-center justify-center space-x-2 mb-4">
+                <div class="w-8 h-8 bg-gradient-to-br from-red-600 to-black rounded-lg flex items-center justify-center">
+                    <svg width="20" height="20" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M16 2L6 6V14C6 21 10.5 27.5 16 30C21.5 27.5 26 21 26 14V6L16 2Z" stroke="white" stroke-width="2" fill="rgba(255,255,255,0.1)"/>
+                        <path d="M16 5L9 8V14C9 19.5 12 24 16 26C20 24 23 19.5 23 14V8L16 5Z" fill="white"/>
+                        <rect x="13" y="14" width="6" height="6" rx="1" fill="#dc2626"/>
+                        <path d="M14 14V12C14 10.9 14.9 10 16 10C17.1 10 18 10.9 18 12V14" stroke="#dc2626" stroke-width="1.5" fill="none"/>
+                    </svg>
+                </div>
+                <span class="text-xl font-bold bg-gradient-to-r from-red-500 to-red-300 bg-clip-text text-transparent">Privacy Shield</span>
+            </div>
+            <p class="text-gray-400 text-sm mb-4">Protecting your digital privacy, one permission at a time.</p>
+            <div class="flex items-center justify-center space-x-6 text-sm text-gray-400 mb-4">
+                <a href="#" class="hover:text-red-400 transition-colors">Privacy Policy</a>
+                <a href="#" class="hover:text-red-400 transition-colors">Terms of Service</a>
+                <a href="#" class="hover:text-red-400 transition-colors">Support</a>
+                <a href="#" class="hover:text-red-400 transition-colors">About</a>
+            </div>
+            <p class="text-red-400 text-sm font-medium">© 2025 Privacy Shield. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- VPN Details Modal -->
+    <div id="vpn-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 rounded-2xl p-8 max-w-2xl w-full mx-4 shadow-2xl border border-gray-700 transform transition-all duration-500 scale-95 opacity-0 modal-content">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-gradient-to-br from-emerald-400 via-green-500 to-teal-600 rounded-full flex items-center justify-center">
+                        <svg width="24" height="24" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 3L8 7V17C8 26 13 34 20 37C27 34 32 26 32 17V7L20 3Z" stroke="white" stroke-width="2" fill="rgba(255,255,255,0.2)"/>
+                            <path d="M20 6L11 9V17C11 24 15 30 20 33C25 30 29 24 29 17V9L20 6Z" fill="white"/>
+                            <rect x="16" y="17" width="8" height="8" rx="1" fill="#10b981"/>
+                            <path d="M17 17V15C17 13.3 18.3 12 20 12C21.7 12 23 13.3 23 15V17" stroke="#10b981" stroke-width="2" fill="none"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">VPN Shield Details</h2>
+                        <p class="text-emerald-300">Your secure connection status</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('vpn-modal')" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-gray-700 rounded-xl p-4">
+                    <h3 class="font-semibold text-white mb-2">Connection Status</h3>
+                    <div class="flex items-center space-x-2 mb-2">
+                        <div class="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
+                        <span class="text-emerald-300 font-medium">Connected</span>
+                    </div>
+                    <p class="text-gray-300 text-sm">Server: Netherlands (Amsterdam)</p>
+                    <p class="text-gray-300 text-sm">IP: 185.232.23.45</p>
+                </div>
+                
+                <div class="bg-gray-700 rounded-xl p-4">
+                    <h3 class="font-semibold text-white mb-2">Performance</h3>
+                    <p class="text-gray-300 text-sm">Speed: 127 Mbps</p>
+                    <p class="text-gray-300 text-sm">Latency: 12ms</p>
+                    <p class="text-gray-300 text-sm">Uptime: 99.9%</p>
+                </div>
+                
+                <div class="bg-gray-700 rounded-xl p-4">
+                    <h3 class="font-semibold text-white mb-2">Security Features</h3>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-emerald-400">✓</span>
+                            <span class="text-gray-300">AES-256 Encryption</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-emerald-400">✓</span>
+                            <span class="text-gray-300">Kill Switch Active</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-emerald-400">✓</span>
+                            <span class="text-gray-300">DNS Leak Protection</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-700 rounded-xl p-4">
+                    <h3 class="font-semibold text-white mb-2">Data Usage</h3>
+                    <p class="text-gray-300 text-sm">Today: 2.3 GB</p>
+                    <p class="text-gray-300 text-sm">This Month: 45.7 GB</p>
+                    <p class="text-gray-300 text-sm">Saved: 12 tracking attempts</p>
+                </div>
+            </div>
+            
+            <div class="flex space-x-3">
+                <button onclick="toggleVPN()" class="flex-1 bg-gradient-to-r from-emerald-500 to-green-600 text-white py-3 px-6 rounded-lg font-medium hover:from-emerald-600 hover:to-green-700 transition-all duration-300">
+                    Toggle Connection
+                </button>
+                <button onclick="showVPNSettings()" class="px-6 py-3 border border-gray-600 text-gray-300 rounded-lg font-medium hover:bg-gray-700 transition-all duration-300">
+                    Settings
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dark Web Modal -->
+    <div id="darkweb-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 rounded-2xl p-8 max-w-2xl w-full mx-4 shadow-2xl border border-gray-700 transform transition-all duration-500 scale-95 opacity-0 modal-content">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-gradient-to-br from-purple-500 via-indigo-600 to-violet-700 rounded-full flex items-center justify-center">
+                        <svg width="24" height="24" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="20" cy="20" r="12" stroke="white" stroke-width="2" fill="rgba(255,255,255,0.1)"/>
+                            <circle cx="20" cy="20" r="8" fill="white"/>
+                            <circle cx="20" cy="20" r="4" fill="#8b5cf6"/>
+                            <circle cx="22" cy="18" r="1.5" fill="white"/>
+                            <circle cx="10" cy="15" r="1.5" fill="rgba(255,255,255,0.4)"/>
+                            <circle cx="30" cy="15" r="1.5" fill="rgba(255,255,255,0.4)"/>
+                            <circle cx="10" cy="25" r="1.5" fill="rgba(255,255,255,0.4)"/>
+                            <circle cx="30" cy="25" r="1.5" fill="rgba(255,255,255,0.4)"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Dark Web Monitoring</h2>
+                        <p class="text-purple-300">Identity protection report</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('darkweb-modal')" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-gray-700 rounded-xl p-4">
+                    <h3 class="font-semibold text-white mb-2">Scan Status</h3>
+                    <div class="flex items-center space-x-2 mb-2">
+                        <div class="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
+                        <span class="text-yellow-300 font-medium">Active Monitoring</span>
+                    </div>
+                    <p class="text-gray-300 text-sm">Last scan: 2 hours ago</p>
+                    <p class="text-gray-300 text-sm">Next scan: In 4 hours</p>
+                </div>
+                
+                <div class="bg-gray-700 rounded-xl p-4">
+                    <h3 class="font-semibold text-white mb-2">Threats Found</h3>
+                    <div class="text-red-400 text-2xl font-bold mb-1">3</div>
+                    <p class="text-gray-300 text-sm">Email addresses exposed</p>
+                    <p class="text-gray-300 text-sm">2 new this week</p>
+                </div>
+                
+                <div class="bg-gray-700 rounded-xl p-4 md:col-span-2">
+                    <h3 class="font-semibold text-white mb-3">Recent Findings</h3>
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between p-2 bg-red-900/30 rounded-lg border border-red-700/50">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-red-400">⚠️</span>
+                                <span class="text-gray-300 text-sm">john.doe@email.com found in data breach</span>
+                            </div>
+                            <span class="text-xs text-gray-400">2 days ago</span>
+                        </div>
+                        <div class="flex items-center justify-between p-2 bg-yellow-900/30 rounded-lg border border-yellow-700/50">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-yellow-400">⚠️</span>
+                                <span class="text-gray-300 text-sm">Phone number +1-555-0123 detected</span>
+                            </div>
+                            <span class="text-xs text-gray-400">1 week ago</span>
+                        </div>
+                        <div class="flex items-center justify-between p-2 bg-red-900/30 rounded-lg border border-red-700/50">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-red-400">⚠️</span>
+                                <span class="text-gray-300 text-sm">Password hash compromised</span>
+                            </div>
+                            <span class="text-xs text-gray-400">2 weeks ago</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex space-x-3">
+                <button onclick="startDarkWebScan()" class="flex-1 bg-gradient-to-r from-purple-600 to-indigo-700 text-white py-3 px-6 rounded-lg font-medium hover:from-purple-700 hover:to-indigo-800 transition-all duration-300">
+                    Start New Scan
+                </button>
+                <button onclick="viewDarkWebReport()" class="px-6 py-3 border border-gray-600 text-gray-300 rounded-lg font-medium hover:bg-gray-700 transition-all duration-300">
+                    Full Report
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="notification" class="fixed top-4 right-4 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300 z-50">
+        <div class="flex items-center space-x-2">
+            <span class="text-lg">✅</span>
+            <span id="notification-text">Action completed successfully!</span>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching functionality
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('nav button').forEach(btn => {
+                btn.classList.remove('tab-active');
+                btn.classList.add('text-gray-600', 'hover:text-gray-900');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.remove('hidden');
+            
+            // Add active class to clicked button
+            event.target.classList.add('tab-active');
+            event.target.classList.remove('text-gray-600', 'hover:text-gray-900');
+        }
+
+        // Permission management functions
+        function managePermissions(appName) {
+            showNotification(`Opening permission settings for ${appName}...`);
+            // In a real app, this would open the system permission settings
+        }
+
+        function requestDeletion(appName) {
+            showNotification(`Data deletion request sent to ${appName}!`);
+            // In a real app, this would generate a GDPR request or send an email
+        }
+
+        function revokePermission(permissionType) {
+            showNotification(`${permissionType.charAt(0).toUpperCase() + permissionType.slice(1)} permission revoked for all apps!`);
+            // In a real app, this would call the system API to revoke permissions
+        }
+
+        function generateReport(reportType) {
+            showNotification(`Generating ${reportType} privacy report...`);
+            // In a real app, this would generate and download a report
+        }
+
+        function reportViolation() {
+            showNotification('Privacy violation report submitted!');
+            // In a real app, this would open a form or send a report
+        }
+
+        function exportData() {
+            showNotification('Preparing data export... You will receive an email when ready.');
+            // In a real app, this would start the data export process
+        }
+
+        // Notification system
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            const notificationText = document.getElementById('notification-text');
+            
+            notificationText.textContent = message;
+            notification.classList.remove('translate-x-full');
+            notification.classList.add('animate-bounce');
+            
+            setTimeout(() => {
+                notification.classList.remove('animate-bounce');
+            }, 1000);
+            
+            setTimeout(() => {
+                notification.classList.add('translate-x-full');
+            }, 3000);
+        }
+
+        // VPN Control Functions
+        let vpnConnected = true;
+        let killSwitchEnabled = true;
+
+        function toggleVPN() {
+            const button = document.getElementById('vpn-toggle');
+            const status = document.getElementById('vpn-status');
+            
+            if (vpnConnected) {
+                vpnConnected = false;
+                button.innerHTML = `
+                    <div class="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div class="relative flex items-center justify-center space-x-2">
+                        <span class="text-lg animate-pulse">🔌</span>
+                        <span>Connect VPN</span>
+                    </div>
+                `;
+                button.classList.remove('from-emerald-500', 'to-green-600', 'hover:from-emerald-600', 'hover:to-green-700');
+                button.classList.add('from-red-500', 'to-red-600', 'hover:from-red-600', 'hover:to-red-700');
+                status.textContent = 'Status: Disconnected';
+                showNotification('VPN disconnected. Your connection is no longer protected.');
+            } else {
+                vpnConnected = true;
+                button.innerHTML = `
+                    <div class="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div class="relative flex items-center justify-center space-x-2">
+                        <span class="text-lg animate-pulse">🛡️</span>
+                        <span>Disconnect VPN</span>
+                    </div>
+                `;
+                button.classList.remove('from-red-500', 'to-red-600', 'hover:from-red-600', 'hover:to-red-700');
+                button.classList.add('from-emerald-500', 'to-green-600', 'hover:from-emerald-600', 'hover:to-green-700');
+                status.textContent = 'Status: Connected - Netherlands';
+                showNotification('VPN connected successfully. Your connection is now secure.');
+            }
+        }
+
+        function changeVPNLocation(location) {
+            const locationNames = {
+                'netherlands': 'Netherlands',
+                'switzerland': 'Switzerland',
+                'sweden': 'Sweden',
+                'canada': 'Canada',
+                'japan': 'Japan'
+            };
+            
+            if (vpnConnected) {
+                document.getElementById('vpn-status').textContent = `Status: Connected - ${locationNames[location]}`;
+                showNotification(`VPN server changed to ${locationNames[location]}`);
+            }
+        }
+
+        function toggleKillSwitch() {
+            killSwitchEnabled = !killSwitchEnabled;
+            const status = killSwitchEnabled ? 'enabled' : 'disabled';
+            showNotification(`Kill switch ${status}`);
+        }
+
+        function showVPNSettings() {
+            showNotification('Opening VPN settings...');
+            // In a real app, this would open VPN configuration options
+        }
+
+        // Modal Functions
+        function showVPNDetails() {
+            const modal = document.getElementById('vpn-modal');
+            const content = modal.querySelector('.modal-content');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function showDarkWebDetails() {
+            const modal = document.getElementById('darkweb-modal');
+            const content = modal.querySelector('.modal-content');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            const content = modal.querySelector('.modal-content');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function(event) {
+            const vpnModal = document.getElementById('vpn-modal');
+            const darkwebModal = document.getElementById('darkweb-modal');
+            
+            if (event.target === vpnModal) {
+                closeModal('vpn-modal');
+            }
+            if (event.target === darkwebModal) {
+                closeModal('darkweb-modal');
+            }
+        });
+
+        // Dark Web Monitoring Functions
+        function viewDarkWebReport() {
+            showNotification('Generating detailed dark web monitoring report...');
+            // In a real app, this would show a detailed report of found data
+        }
+
+        function startDarkWebScan() {
+            showNotification('Starting comprehensive dark web scan...');
+            // In a real app, this would initiate a new scan
+            
+            // Simulate scan progress
+            setTimeout(() => {
+                showNotification('Dark web scan completed. 3 new threats detected.');
+            }, 3000);
+        }
+
+        // Simulate real-time updates
+        setInterval(() => {
+            // This would update the dashboard with real data in a production app
+            console.log('Checking for permission updates...');
+            
+            // Simulate VPN speed updates
+            if (vpnConnected) {
+                const speeds = ['127 Mbps', '134 Mbps', '119 Mbps', '142 Mbps', '128 Mbps'];
+                const randomSpeed = speeds[Math.floor(Math.random() * speeds.length)];
+                const speedElement = document.querySelector('.text-green-400.font-medium');
+                if (speedElement && speedElement.textContent.includes('Mbps')) {
+                    speedElement.textContent = randomSpeed;
+                }
+            }
+        }, 30000);
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'966d273ec714cf00',t:'MTc1Mzc5NzczOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
